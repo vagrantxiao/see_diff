@@ -10,7 +10,7 @@
 #include "sleep.h"
 #include "xcirc_buff_read_many_128_jump.h"
 
-#ifdef CIRCULAR_BUFF_MANY_128_IP
+#ifdef CIRCULAR_BUFF_READ_MANY_128_IP
 #include "xcirc_buff_read_many128.h"
 
 
@@ -24,8 +24,6 @@ static void start_circ_buff_read_many_128(void* config)
 	XCirc_buff_read_many128_Set_reset((XCirc_buff_read_many128*)config,0);
 	XCirc_buff_read_many128_EnableAutoRestart( (XCirc_buff_read_many128*)config );
 	usleep(5);
-
-//	printf("starting Write IP \n");
 
     XCirc_buff_read_many128_Start( (XCirc_buff_read_many128*)config );
 }

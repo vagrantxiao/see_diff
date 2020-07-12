@@ -5,10 +5,10 @@
 #define HW_STREAMS 6
 #define SW_STREAMS 10
 #define BUFFER_SIZE_POW_2 512 // mustbe a power of 2 to work
-#define ACTIVE_CORES 4
+#define ACTIVE_CORES 1
 
-#define RUN_RENDER
-//#define RUN_BENCHMARK
+//#define RUN_RENDER
+#define RUN_BENCHMARK
 
 #ifdef RUN_RENDER
 #ifdef RUN_BENCHMARK
@@ -36,12 +36,19 @@ static_assert(0,"4 core flow Benchmark and render benchmarks can not be run toge
 // ALGORITHMS
 //#define PRESENCE_IP
 //#define CIRCULAR_BUFF_MANY_IP
-#define CIRCULAR_BUFF_MANY_128_IP
+//#define CIRCULAR_BUFF_MANY_128_IP
 //#define CIRCULAR_BUFF_IP
 //#define CIRCULAR_BUFF_128_IP
+#define CIRCULAR_BUFF_READ_128_IP
+#define CIRCULAR_BUFF_WRITE_128_IP
+//#define CIRCULAR_BUFF_READ_MANY_128_IP
+//#define CIRCULAR_BUFF_WRITE_MANY_128_IP
 
 //#define BERT_EXAMPLE
 //#define LOOP_BACK128_AXI_LITE_IP
+
+#define PRODUCER
+#define CONSUMER
 
 #define NUM_RX_CONFIGS_128 2
 #define NUM_TX_CONFIGS_128 2

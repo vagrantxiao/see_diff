@@ -35,9 +35,11 @@ int pr_flow::benchmark_stream::stream_init( test_t test_id,memory_t mem )
 	//
 	this->test = test_id;
 
-	// get our function pointers
-	this->bsp_table = get_jump_table(test_id,this->direction);
-
+    if( test != PS_MEMORY )
+    {
+    	// get our function pointers
+    	this->bsp_table = get_jump_table(test_id,this->direction);
+    }
 	//
 	this->memory = mem;
 
@@ -52,10 +54,15 @@ int pr_flow::benchmark_stream::stream_init( test_t test_id,memory_t mem )
    	// get the address of our buffer
     offset = *((u32*)(&this->bench_buff));
 
-
-     // set the hls buffer address
-     rval = initialize_ip( offset,this->words );
-
+    if( test != PS_MEMORY )
+    {
+    	// set the hls buffer address
+    	rval = initialize_bip( offset,this->words );
+    }
+    else
+    {
+    	rval = XST_SUCCESS;
+    }
  	// ensure drivers are created successfully
      if(rval != XST_SUCCESS)
      {
@@ -86,6 +93,24 @@ int pr_flow::benchmark_stream::stream_init( test_t test_id,memory_t mem )
     return XST_SUCCESS;
 }
 
+int pr_flow::benchmark_stream::initialize_bip( uint32_t offset, uint8_t word )
+{
+	int rval = XST_FAILURE;
+	// ensure bsp table is assigned
+	assert( this->bsp_table->init != NULL );
+
+	//
+	ip_data_t ip;
+	ip.stream_id = this->stream_id;
+	ip.offset = offset;
+	ip.words = word;
+	ip.bsp_id =  this->stream_id;
+
+
+	// initlaize our construct for talking to hardware
+	rval = this->bsp_table->init(this->axi_config,(void*)&ip);
+	return rval;
+}
 
 /*
 * Simple read write with no handshaking
@@ -123,7 +148,37 @@ void pr_flow::benchmark_stream::unrolled_write( uint64_t data )
 	this->bench_buff[this->ptr+1] = data+1;
 	this->bench_buff[this->ptr+2] = data+2;
 	this->bench_buff[this->ptr+3] = data+3;
-	this->ptr+=4;
+	this->bench_buff[this->ptr+4] = data+4;
+	this->bench_buff[this->ptr+5] = data+5;
+	this->bench_buff[this->ptr+6] = data+6;
+	this->bench_buff[this->ptr+7] = data+7;
+	this->bench_buff[this->ptr+8] = data+8;
+	this->bench_buff[this->ptr+9] = data+9;
+	this->bench_buff[this->ptr+10] = data+10;
+	this->bench_buff[this->ptr+11] = data+11;
+	this->bench_buff[this->ptr+12] = data+12;
+	this->bench_buff[this->ptr+13] = data+13;
+	this->bench_buff[this->ptr+14] = data+14;
+	this->bench_buff[this->ptr+15] = data+15;
+	this->bench_buff[this->ptr+16] = data+16;
+	this->bench_buff[this->ptr+17] = data+17;
+	this->bench_buff[this->ptr+18] = data+18;
+	this->bench_buff[this->ptr+19] = data+19;
+	this->bench_buff[this->ptr+20] = data+20;
+	this->bench_buff[this->ptr+21] = data+21;
+	this->bench_buff[this->ptr+22] = data+22;
+	this->bench_buff[this->ptr+23] = data+23;
+	this->bench_buff[this->ptr+24] = data+24;
+	this->bench_buff[this->ptr+25] = data+25;
+	this->bench_buff[this->ptr+26] = data+26;
+	this->bench_buff[this->ptr+27] = data+27;
+	this->bench_buff[this->ptr+28] = data+28;
+	this->bench_buff[this->ptr+29] = data+29;
+	this->bench_buff[this->ptr+30] = data+30;
+	this->bench_buff[this->ptr+31] = data+31;
+
+
+	this->ptr+=32;
 	this->ptr = this->ptr & this->buff_size;
 }
 
@@ -136,7 +191,36 @@ void pr_flow::benchmark_stream::unrolled_read( uint64_t* temp)
 	temp[1] = this->bench_buff[this->ptr+1];
 	temp[2] = this->bench_buff[this->ptr+2];
 	temp[3] = this->bench_buff[this->ptr+3];
-	this->ptr+=4;
+	temp[4] = this->bench_buff[this->ptr+4];
+	temp[5] = this->bench_buff[this->ptr+5];
+	temp[6] = this->bench_buff[this->ptr+6];
+	temp[7] = this->bench_buff[this->ptr+7];
+	temp[8] = this->bench_buff[this->ptr+8];
+	temp[9] = this->bench_buff[this->ptr+9];
+	temp[10] = this->bench_buff[this->ptr+10];
+	temp[11] = this->bench_buff[this->ptr+11];
+	temp[12] = this->bench_buff[this->ptr+12];
+	temp[13] = this->bench_buff[this->ptr+13];
+	temp[14] = this->bench_buff[this->ptr+14];
+	temp[15] = this->bench_buff[this->ptr+15];
+	temp[16] = this->bench_buff[this->ptr+16];
+	temp[17] = this->bench_buff[this->ptr+17];
+	temp[18] = this->bench_buff[this->ptr+18];
+	temp[19] = this->bench_buff[this->ptr+19];
+	temp[20] = this->bench_buff[this->ptr+20];
+	temp[21] = this->bench_buff[this->ptr+21];
+	temp[22] = this->bench_buff[this->ptr+22];
+	temp[23] = this->bench_buff[this->ptr+23];
+	temp[24] = this->bench_buff[this->ptr+24];
+	temp[25] = this->bench_buff[this->ptr+25];
+	temp[26] = this->bench_buff[this->ptr+26];
+	temp[27] = this->bench_buff[this->ptr+27];
+	temp[28] = this->bench_buff[this->ptr+28];
+	temp[29] = this->bench_buff[this->ptr+29];
+	temp[30] = this->bench_buff[this->ptr+30];
+	temp[31] = this->bench_buff[this->ptr+31];
+
+	this->ptr+=32;
 	this->ptr = this->ptr & this->buff_size;
 
 }

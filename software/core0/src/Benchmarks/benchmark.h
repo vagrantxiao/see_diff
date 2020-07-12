@@ -49,7 +49,7 @@ int run_benchmark_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::a
 * @param memory; type of memory to create a stream, DDR,OCM,CACHE
 * @param port; what port IP is tied to, solely for book keeping
 */
-int run_benchmark_2core_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_t port, pr_flow::stream_id_t id );
+int run_benchmark_2core_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_t port, pr_flow::stream_id_t id,pr_flow::width_t s_width );
 
 
 /*
@@ -60,6 +60,11 @@ int run_benchmark_2core_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 * @param port; what port IP is tied to, solely for book keeping
 */
 int run_benchmark_2core_ps( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_t port );
+
+
+int run_producer( pr_flow::memory_t memory, pr_flow::axi_port_t port,pr_flow::stream_id_t id );
+
+int run_consumer( pr_flow::memory_t memory, pr_flow::axi_port_t port,pr_flow::stream_id_t id );
 
 /*
 * Description: sets up the mutex IP for each core

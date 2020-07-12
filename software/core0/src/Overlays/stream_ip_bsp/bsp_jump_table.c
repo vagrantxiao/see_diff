@@ -55,6 +55,9 @@ extern pr_flow::bsp_device_t circ_buff_write_many_128_table;
 extern pr_flow::bsp_device_t loop_back_128_write_axi_lite_table;
 extern pr_flow::bsp_device_t loop_back_128_read_axi_lite_table;
 
+extern pr_flow::bsp_device_t producer_table;
+extern pr_flow::bsp_device_t consumer_table;
+
 extern pr_flow::bsp_device_t bert_example_table;
 
 //extern pr_flow::device_ext_t bert_ext_table;
@@ -86,7 +89,9 @@ static pr_flow::bsp_device_t jump_table[pr_flow::MAX_TEST][pr_flow::MAX_DIRECTIO
 		{ circ_buff_read_many_table,circ_buff_write_many_table },
 		{ circ_buff_read_many_128_table,circ_buff_write_many_128_table  },
 		{ bert_example_table,bert_example_table  },
-		{ loop_back_128_read_axi_lite_table,loop_back_128_write_axi_lite_table  }
+		{ loop_back_128_read_axi_lite_table,loop_back_128_write_axi_lite_table  },
+		{ producer_table,producer_table  },
+		{ consumer_table,consumer_table  }
 };
 
 //

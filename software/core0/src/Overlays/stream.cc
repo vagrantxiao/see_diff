@@ -282,19 +282,15 @@ int pr_flow::stream::initialize_ip( uint32_t offset, uint8_t word )
 {
 	int rval = XST_FAILURE;
 	// ensure bsp table is assigned
-	assert( this->bsp_table->init != NULL );
+	if( this->bsp_table->init == NULL ) return XST_SUCCESS;
 
 	//
 	ip_data_t ip;
 	ip.stream_id = this->stream_id;
 	ip.offset = offset;
 	ip.words = word;
-	ip.bsp_id = 0;
+	ip.bsp_id =  0;
 
-//	if(this->memory == pr_flow::OCM)
-//	{
-//		ip.bsp_id = 1;
-//	}
 
 	// initlaize our construct for talking to hardware
 	rval = this->bsp_table->init(this->axi_config,(void*)&ip);

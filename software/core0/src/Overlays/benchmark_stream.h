@@ -89,6 +89,11 @@ public:
 	/// writes, one entry, increments a pointer to write the next.
 	void simple_write( uint64_t data );
 
+	///
+	//
+	///
+	int initialize_bip( uint32_t offset, uint8_t word );
+
 	/// performs a simple write but inlined to show a different aspect of performance benchmarking
 	inline void inline_simple_write( uint64_t data )
 	{

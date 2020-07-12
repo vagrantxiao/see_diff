@@ -4,46 +4,52 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef CIRCULAR_BUFF_128_IP
+#ifdef CIRCULAR_BUFF_WRITE_128_IP
 #include "xcirc_buff_write_128.h"
 #include "../bsp_jump_table.h"
 #include <stdint.h>
 #include <stdlib.h>
 
-//typedef struct bsp_device {
-//    int32_t (*is_done)(void* config);
-//    void (*start)(void* config);
-//    int32_t (*init)(void *config, uint32_t bsp_id);
-//    void (*set_ptrs)(void *config, uint32_t offset);
-//    void (*stop)(void* config);
-//}bsp_device_t;
-
-int32_t is_circ_buff_write_128_done(void* config)
+static int32_t is_circ_buff_write_128_done(void* config)
 {
     return -1;
 }
 
-void start_circ_buff_write_128(void* config)
+static void start_circ_buff_write_128(void* config)
 {
-    
+//	XCirc_buff_write_128_Set_reset((XCirc_buff_write_128*)config,0);
     XCirc_buff_write_128_EnableAutoRestart( (XCirc_buff_write_128*)config );
     XCirc_buff_write_128_Start( (XCirc_buff_write_128*)config );
 
 }
 
-int32_t init_circ_buff_write_128(void* config,uint32_t bsp_id)
+static int32_t init_circ_buff_write_128(void* config,void* data)
 {
-    return  XCirc_buff_write_128_Initialize( (XCirc_buff_write_128*)config, bsp_id );
+	int32_t rval;
+
+    uint8_t* word_ptr;
+    u32 bram_buff;
+    meta_data_t* ip_data = (meta_data_t*)data;
+
+	rval = XCirc_buff_write_128_Initialize( (XCirc_buff_write_128*)config, ip_data->bsp_id );
+
+    // enable auto restart turning IP into while 1 loop.
+	XCirc_buff_write_128_EnableAutoRestart( (XCirc_buff_write_128*)config );
+
+    XCirc_buff_write_128_Set_output_V( (XCirc_buff_write_128*)config, ip_data->offset );
+
+    return rval;
 }
 
-void set_circ_buff_write_128_ptrs( void* config, uint32_t offset )
+static int32_t set_circ_buff_write_128_ptrs( void* config, void* data )
 {
-    XCirc_buff_write_128_Set_output_V( (XCirc_buff_write_128*)config, offset );
+
 }
 
-void stop_circ_buff_write_128( void* config )
+static void stop_circ_buff_write_128( void* config )
 {
-    //
+//	XCirc_buff_write_128_Set_reset((XCirc_buff_write_128*)config,1);
+	//
     XCirc_buff_write_128_DisableAutoRestart( (XCirc_buff_write_128*)config );
 
     //
@@ -59,10 +65,9 @@ pr_flow::bsp_device_t circ_buff_write_128_table =
     .start = start_circ_buff_write_128,
     .init = init_circ_buff_write_128,
     .set_ptrs = set_circ_buff_write_128_ptrs,
-    .stop = stop_circ_buff_write_128
+    .stop = stop_circ_buff_write_128,
+	.debug = NULL
 };
-
-int16_t circular_write_ip_128[1] = {0};
 
 #else
 
@@ -72,11 +77,10 @@ pr_flow::bsp_device_t circ_buff_write_128_table =
     .start = NULL,
     .init = NULL,
     .set_ptrs = NULL,
-    .stop = NULL
+    .stop = NULL,
+	.debug = NULL
 };
 
-
-int16_t circular_write_ip_128[1] = {0};
 
 #endif
 

@@ -107,6 +107,163 @@ int run_bert( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_
 	return XST_SUCCESS;
 }
 
+int run_consumer( pr_flow::memory_t memory, pr_flow::axi_port_t port,pr_flow::stream_id_t id )
+{
+	XTime timer_start=0;
+	XTime timer_end=0;
+	uint8_t loops = 100;
+	pr_flow::wide_t data1;
+	data1.lower_32=0;
+	data1.mid_lo_32=0;
+	data1.mid_hi_32=0;
+	data1.upper_32=0;
+
+    //
+    //
+    XTime_StartTimer();
+
+	//
+	//
+	// Create tx Stream readonly
+	pr_flow::benchmark_stream Input_Stream( id, pr_flow::direction_t::TX,pr_flow::U32_BITS,port,memory );
+	pr_flow::benchmark_stream consumer( id, pr_flow::direction_t::RX,pr_flow::U32_BITS,port,memory );
+
+	//
+	Input_Stream.stream_init( pr_flow::test_t::CIRCULAR_2CORE_128,memory );
+	consumer.stream_init( pr_flow::test_t::CONSUME,memory );
+
+	synchronize();
+
+	// start the stream
+	consumer.start_stream();
+	Input_Stream.start_stream();
+
+	uint32_t expected=0;
+
+	XTime_GetTime(&timer_start);
+
+
+	for(int k = 0; k < loops; k++)
+	for(int j = 0; j < loops; j++)
+	for(int i = 0; i < loops; i++)
+	{
+		Input_Stream.write(data1);
+		data1.lower_32++;
+//		expected++;
+    }
+	//
+	//
+	// Wait for PL to finish
+	while(1)
+	{
+		if(consumer.is_stream_done())
+			break;
+	}
+
+	XTime_GetTime(&timer_end);
+
+	assert(timer_end > timer_start);
+	uint64_t bits = 100*100*100 *sizeof(pr_flow::wide_t); // bits
+	double seconds = ((double)(timer_end - timer_start) / (COUNTS_PER_SECOND / 1000000)); // useconds
+	double tput = (bits/seconds); // b/us ->gbps
+	tput /= 1000;
+	tput *= 8;
+
+	get_lock();
+	printf("PS GMEM WRITE PL GMEM READ %s %s Throughput ~  %.2lf gbps \n",Input_Stream.mem_type_to_str(memory),Input_Stream.port_type_to_str(port),tput);
+	release_lock();
+
+	// run stop command, for bert IP we just print some variable to check
+	Input_Stream.stop_ip();
+
+	//
+	//
+	// destroy streams
+	Input_Stream.~stream();
+	consumer.~stream();
+
+	return XST_SUCCESS;
+}
+
+int run_producer( pr_flow::memory_t memory, pr_flow::axi_port_t port,pr_flow::stream_id_t id )
+{
+	XTime timer_start=0;
+	XTime timer_end=0;
+	uint8_t loops = 100;
+	pr_flow::wide_t data1;
+	data1.lower_32=0;
+
+    //
+    XTime_StartTimer();
+
+	//
+	//
+	// Create tx Stream readonly
+	pr_flow::benchmark_stream Input_Stream( id, pr_flow::direction_t::RX,pr_flow::U32_BITS,port,memory );
+	pr_flow::benchmark_stream producer( id, pr_flow::direction_t::TX,pr_flow::U32_BITS,port,memory );
+
+	//
+	Input_Stream.stream_init( pr_flow::test_t::CIRCULAR_2CORE_128,memory );
+	producer.stream_init( pr_flow::test_t::PRODUCE,memory );
+
+	synchronize();
+
+	// start the stream
+	Input_Stream.start_stream();
+	producer.start_stream();
+
+	uint32_t expected=0;
+
+	XTime_GetTime(&timer_start);
+
+
+	for(int k = 0; k < loops; k++)
+	for(int j = 0; j < loops; j++)
+	for(int i = 0; i < loops; i++)
+	{
+		Input_Stream.read(&data1);
+//		if(expected != data1.lower_32 )
+//		{
+//			printf("Expected: %d received: %d \n",expected,data1.lower_32);
+//			assert(expected == data1.lower_32);
+//		}
+		expected++;
+    }
+	//
+	//
+	// Wait for PL to finish
+	while(1)
+	{
+		if(producer.is_stream_done())
+			break;
+	}
+
+	XTime_GetTime(&timer_end);
+
+	assert(timer_end > timer_start);
+	uint64_t bits = 100*100*100 *sizeof(pr_flow::wide_t); // bits
+	double seconds = ((double)(timer_end - timer_start) / (COUNTS_PER_SECOND / 1000000)); // useconds
+	double tput = (bits/seconds); // b/us ->gbps
+	tput /= 1000;
+	tput *= 8;
+
+	get_lock();
+	printf("PS GMEM WRITE PL GMEM READ %s %s Throughput ~  %.2lf gbps \n",Input_Stream.mem_type_to_str(memory),Input_Stream.port_type_to_str(port),tput);
+	release_lock();
+
+
+	// run stop command, for bert IP we just print some variable to check
+	Input_Stream.stop_ip();
+
+	//
+	//
+	// destroy streams
+	Input_Stream.~stream();
+	producer.~stream();
+
+	return XST_SUCCESS;
+}
+
 /// runs the standalone PL tests
 int run_benchmark_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_t port,pr_flow::stream_id_t id )
 {
@@ -233,7 +390,7 @@ int run_benchmark_memory( pr_flow::memory_t memory, pr_flow::axi_port_t port )
 	//
 	// Create tx Stream
     pr_flow::benchmark_stream Input_Stream( pr_flow::stream_id_t::STREAM_ID_0, pr_flow::direction_t::SW_SHARED,pr_flow::U32_BITS, port,memory );
-    //Input_Stream.stream_init( pr_flow::test_t::PS_MEMORY,memory );
+    Input_Stream.stream_init( pr_flow::test_t::PS_MEMORY,memory );
 
 
 	XTime_GetTime(&timer_start);
@@ -346,12 +503,12 @@ int run_benchmark_memory( pr_flow::memory_t memory, pr_flow::axi_port_t port )
 
 	assert(timer_end > timer_start);
 
-	bits = 4* loops *loops * loops * sizeof(uint64_t); // bits
+	bits = 32* loops *loops * loops * sizeof(uint64_t); // bits
 	seconds = ((double)(timer_end - timer_start) / (COUNTS_PER_SECOND / 1000000)); // useconds
 	tput = (bits/seconds); // b/us ->gbps
 	tput /= 1000;
 	tput *= 8;
-	printf("PS UNROLLED WRITE %s Throughput ~ %f gbps \n",Input_Stream.mem_type_to_str(memory),tput);
+	printf("PS UNROLLED FACTOR 32 WRITE %s Throughput ~ %f gbps \n",Input_Stream.mem_type_to_str(memory),tput);
 
 
 	XTime_GetTime(&timer_start);
@@ -369,12 +526,12 @@ int run_benchmark_memory( pr_flow::memory_t memory, pr_flow::axi_port_t port )
 
 	assert(timer_end > timer_start);
 
-	bits = 4* loops *loops * loops * sizeof(uint64_t); // bits
+	bits = 32* loops *loops * loops * sizeof(uint64_t); // bits
 	seconds = ((double)(timer_end - timer_start) /(COUNTS_PER_SECOND / 1000000)); // useconds
 	tput = (bits/seconds); // b/us ->gbps
 	tput /= 1000;
 	tput *= 8;
-	printf("PS UNROLLED READ %s Throughput ~ %f gbps \n",Input_Stream.mem_type_to_str(memory),tput);
+	printf("PS UNROLLED FACTOR 32 READ %s Throughput ~ %f gbps \n",Input_Stream.mem_type_to_str(memory),tput);
 //
     XTime_GetTime(&timer_start);
 
@@ -528,21 +685,31 @@ int run_benchmark_ps_pl_4core( pr_flow::test_t test, pr_flow::memory_t memory, p
 	//
 	//
 	// Create rx stream
-	pr_flow::benchmark_stream Stream( pr_flow::stream_id_t::STREAM_ID_2,  pr_flow::direction_t::RX,width, port,memory );
+	pr_flow::benchmark_stream Stream( pr_flow::stream_id_t::STREAM_ID_3,  pr_flow::direction_t::RX,width, port,memory );
+	Stream.stream_init(test,memory);
 
-	pr_flow::benchmark_stream Streamtx(  pr_flow::stream_id_t::STREAM_ID_3,  pr_flow::direction_t::TX,width, port,memory );
 
-	pr_flow::benchmark_stream Streamrx( pr_flow::stream_id_t::STREAM_ID_3,  pr_flow::direction_t::RX,width, port,memory );
+//	pr_flow::benchmark_stream Streamtx(  pr_flow::stream_id_t::STREAM_ID_3,  pr_flow::direction_t::TX,width, port,memory );
+//	Streamtx.stream_init(test,memory);
 
-	pr_flow::benchmark_stream Streamtx2(  pr_flow::stream_id_t::STREAM_ID_4,  pr_flow::direction_t::TX,width, port,memory );
-
-	pr_flow::benchmark_stream Streamrx2(  pr_flow::stream_id_t::STREAM_ID_4,  pr_flow::direction_t::RX,width, port,memory );
-
-	pr_flow::benchmark_stream Streamtx3(  pr_flow::stream_id_t::STREAM_ID_5,  pr_flow::direction_t::TX,width, port,memory );
-
-	pr_flow::benchmark_stream Streamrx3(  pr_flow::stream_id_t::STREAM_ID_5,  pr_flow::direction_t::RX,width, port,memory );
+	pr_flow::benchmark_stream producer(  pr_flow::stream_id_t::STREAM_ID_0,  pr_flow::direction_t::TX,width, port,memory );
+	producer.stream_init( pr_flow::test_t::PRODUCE,memory );
+//
+//	pr_flow::benchmark_stream Streamrx( pr_flow::stream_id_t::STREAM_ID_3,  pr_flow::direction_t::RX,width, port,memory );
+//
+//	pr_flow::benchmark_stream Streamtx2(  pr_flow::stream_id_t::STREAM_ID_4,  pr_flow::direction_t::TX,width, port,memory );
+//
+//	pr_flow::benchmark_stream Streamrx2(  pr_flow::stream_id_t::STREAM_ID_4,  pr_flow::direction_t::RX,width, port,memory );
+//
+//	pr_flow::benchmark_stream Streamtx3(  pr_flow::stream_id_t::STREAM_ID_5,  pr_flow::direction_t::TX,width, port,memory );
+//
+//	pr_flow::benchmark_stream Streamrx3(  pr_flow::stream_id_t::STREAM_ID_5,  pr_flow::direction_t::RX,width, port,memory );
 
 	synchronize();
+
+	Stream.start_stream();
+//	Streamtx.start_stream();
+	producer.start_stream();
 
 	uint64_t expected = 0;
 	uint64_t data = 0;
@@ -562,62 +729,41 @@ int run_benchmark_ps_pl_4core( pr_flow::test_t test, pr_flow::memory_t memory, p
 	for(int j = 0; j < loops; j++)
 	for(int i = 0; i < loops; i++)
 	{
-//		    for(int z = 0; z < 1; z++)
-//		    {
-//		    	Streamtx.write(z);
-//		    }
-//		    for(int z = 0; z < 5; z++)
-//		    {
-//		    	Streamtx2.write(z);
-//		    }
-//		    for(int z1 = 0; z1 < 1; z1++)
-//		    {
-//		    	uint32_t tx = Streamrx.read();
-//		    	tx++;
-//		    }
-//		    for(int z1 = 0; z1 < 5; z1++)
-//		    {
-//		    	uint32_t tx = Streamrx2.read();
-//		    }
-
-
-
-
 		    if(test == pr_flow::CIRCULAR_2CORE_128){
 		    	Stream.read(&data1);
-		    	if( width == 1 )
-		    	{
-		    		if(expected != data1.lower_32)
-		    		{
-		    			printf("Expected: %d received: %d \n",expected,data1.lower_32);
-		    			assert(expected == data1.lower_32);
-		    		}
-		    	}
-		    	else if( width == 2 )
-		    	{
-		    		if(expected != data1.lower_32 || expected != data1.mid_lo_32 )
-		    		{
-		    			printf("Expected: %d received: %d \n",expected,data1.lower_32);
-		    			assert(expected == data1.lower_32);
-		    		}
-		    	}
-		    	else if( width == 4 )
-		    	{
-		    		if(expected != data1.lower_32 || expected != data1.mid_lo_32 || expected != data1.mid_hi_32 || expected != data1.upper_32 )
-		    		{
-		    			printf("Expected: %d received: %d \n",expected,data1.lower_32);
-		    			assert(expected == data1.lower_32);
-		    		}
-		    	}
+//		    	if( width == 1 )
+//		    	{
+//		    		if(expected != data1.lower_32)
+//		    		{
+//		    			printf("Expected: %d received: %d \n",expected,data1.lower_32);
+//		    			assert(expected == data1.lower_32);
+//		    		}
+//		    	}
+//		    	else if( width == 2 )
+//		    	{
+//		    		if(expected != data1.lower_32 || expected != data1.mid_lo_32 )
+//		    		{
+//		    			printf("Expected: %d received: %d \n",expected,data1.lower_32);
+//		    			assert(expected == data1.lower_32);
+//		    		}
+//		    	}
+//		    	else if( width == 4 )
+//		    	{
+//		    		if(expected != data1.lower_32 || expected != data1.mid_lo_32 || expected != data1.mid_hi_32 || expected != data1.upper_32 )
+//		    		{
+//		    			printf("Expected: %d received: %d \n",expected,data1.lower_32);
+//		    			assert(expected == data1.lower_32);
+//		    		}
+//		    	}
 		    }
-		    if(test == pr_flow::CIRCULAR_2CORE){
-		    	data = Stream.primitive_read();
-				if(expected != data)
-				{
-					printf("Expected: %d received: %d \n",expected,data);
-					assert(expected == data);
-				}
-		    }
+//		    else if(test == pr_flow::CIRCULAR_2CORE){
+//		    	data = Stream.primitive_read();
+//				if(expected != data)
+//				{
+//					printf("Expected: %d received: %d \n",expected,data);
+//					assert(expected == data);
+//				}
+//		    }
 			expected++;
 
 //			works
@@ -646,12 +792,12 @@ int run_benchmark_ps_pl_4core( pr_flow::test_t test, pr_flow::memory_t memory, p
 	//
 	// destroy streams
 	Stream.~stream();
-	Streamtx.~stream();
-	Streamrx.~stream();
-	Streamtx2.~stream();
-	Streamrx2.~stream();
-	Streamtx3.~stream();
-	Streamrx3.~stream();
+//	Streamtx.~stream();
+//	Streamrx.~stream();
+//	Streamtx2.~stream();
+//	Streamrx2.~stream();
+//	Streamtx3.~stream();
+//	Streamrx3.~stream();
 
 	synchronize();
 
@@ -709,7 +855,7 @@ int run_benchmark_2core_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 					assert(expected == data1.lower_32);
 				}
 		    }
-		    if(test == pr_flow::CIRCULAR_2CORE){
+		    else if(test == pr_flow::CIRCULAR_2CORE){
 		    	data = Stream1.primitive_read();
 				if(expected != data)
 				{
@@ -738,7 +884,7 @@ int run_benchmark_2core_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 	}
 
 	XTime_GetTime(&timer_end);
-	timer_start = *ptr;
+	//timer_start = *ptr;
 
 	assert(timer_end > timer_start);
 	uint64_t bits = loops * loops * loops * loops * width; // bits
@@ -760,7 +906,7 @@ int run_benchmark_2core_pl( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 }
 
 // only a 2core example
-int run_benchmark_2core_ps( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_t port,pr_flow::perf_t perf )
+int run_benchmark_2core_ps( pr_flow::test_t test, pr_flow::memory_t memory, pr_flow::axi_port_t port )
 {
 	int loops = 100;
 	XTime timer_end;
@@ -778,7 +924,7 @@ int run_benchmark_2core_ps( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 	//
 	//
 	// Create rx stream
-	pr_flow::benchmark_stream Stream1( pr_flow::stream_id_t::STREAM_ID_0, pr_flow::direction_t::SW_SHARED,pr_flow::U32_BITS,port,memory );
+	pr_flow::benchmark_stream Stream1( pr_flow::stream_id_t::STREAM_ID_0, pr_flow::direction_t::SW_SHARED,pr_flow::SW_WIDTH,port,memory );
 
 //	Stream1.stream_init( test,memory );
 	width = Stream1.get_width( test );
@@ -787,10 +933,12 @@ int run_benchmark_2core_ps( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 
 	XTime_StartTimer();
 
+	XTime_GetTime(&timer_start);
+
 	//
 	//
 	// Send data
-	for(int w = 0; w < loops; w++)
+//	for(int w = 0; w < loops; w++)
 	for(int k = 0; k < loops; k++)
 	for(int j = 0; j < loops; j++)
 	for(int i = 0; i < loops; i++)
@@ -832,10 +980,10 @@ int run_benchmark_2core_ps( pr_flow::test_t test, pr_flow::memory_t memory, pr_f
 	}
 
 	XTime_GetTime(&timer_end);
-	timer_start = *ptr;
+//	timer_start = *ptr;
 
 	assert(timer_end > timer_start);
-	uint64_t bits = loops * loops *loops * loops * width; // bits
+	uint64_t bits = loops *loops * loops * width; // bits
 	double seconds = ((double)(timer_end - timer_start) / (COUNTS_PER_SECOND / 1000000)); // useconds
 	double tput = (bits/seconds); // b/us ->gbps
 	tput /= 1000;

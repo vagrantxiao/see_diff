@@ -147,6 +147,8 @@ enum test_t{
 	CIRCULAR_BUFF_MANY_128, ///< runs an IP using the shared head and tail pointer algorithm with 128 bit of data movement
 	BERT_TEST,          ///< runs the BERT test
 	LOOP_BACK128_LITE,  ///< runs loopback IP on axi lite interface
+	PRODUCE,  			///< producer
+	CONSUME,  			///< consumer
 	PS_MEMORY,          ///< runs a PS only test without hardware
 	MAX_TEST,           ///
 	INVALID_TEST = MAX_TEST,///

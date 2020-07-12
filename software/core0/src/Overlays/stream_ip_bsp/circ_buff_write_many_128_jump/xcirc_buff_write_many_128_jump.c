@@ -11,7 +11,7 @@
 #include "sleep.h"
 #include "xcirc_buff_write_many_128_jump.h"
 
-#ifdef CIRCULAR_BUFF_MANY_128_IP
+#ifdef CIRCULAR_BUFF_WRITE_MANY_128_IP
 #include "xcirc_buff_write_many128.h"
 
 

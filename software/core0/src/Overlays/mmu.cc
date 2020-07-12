@@ -18,7 +18,7 @@
 #define SYNCHRONIZE (0xFFFEB000) // shared memory region for synchronizing the cores
 #define MMU_MEM (0xFFFEB008) // shared memory region for creation of sw streams
 
-#define TX_REGION (0xFFFEB032)
+#define TX_REGION (0xFFFEB030)
 #define RX_REGION TX_REGION + ( sizeof(uint64_t) * HW_STREAMS )
 #define SW_REGION RX_REGION + ( sizeof(uint64_t) * HW_STREAMS )
 
